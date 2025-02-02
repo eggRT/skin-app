@@ -5,11 +5,13 @@ namespace App\Services\Pars\Service;
 use App\Models\Collection;
 use App\Models\Item;
 use App\Models\Period;
+use App\Services\CalculatePercent\CalcPercentTrait;
 use App\Services\Pars\ParsClient;
 use App\Services\Pars\Query\ItemsByCollectionQuery;
 use App\Services\Pars\Response\ItemsByCollectionResponse;
 
 class SteamCollectionItemsService {
+    use CalcPercentTrait;
 
     private ParsClient $client;
 
@@ -83,6 +85,27 @@ class SteamCollectionItemsService {
         $this->parsColletion->save();
     }
 
+    private function updateItem($item, $alltimePercent, $price)
+    {
+        $item->alltime_percent  = $alltimePercent;
+        $item->price            = $price;
+        $item->save();
+    }
+
+    /**
+     * Calculate volume percent
+     * 
+     */
+    private function calcVolumePercent($item)
+    {
+        $periods = $item->periods()->orderBy('created_at', 'ASC')->get();
+
+        $firstPeriodVol = $periods->first()->volume;
+        $secondPeriodVol = $periods->last()->volume;
+
+        return $this->calcPercent($secondPeriodVol, $firstPeriodVol);
+    }
+
     /**
      * Parsing json data
      * 
@@ -117,6 +140,8 @@ class SteamCollectionItemsService {
             ];
 
             $this->savePeriod($periodData);
+
+            $this->updateItem($itemObj, $this->calcVolumePercent($itemObj), $data["price"]);
 
             print_r($itemObj->name . "\n");
         }

@@ -12,7 +12,13 @@ class Item extends Model
     protected $fillable = [
         'name',
         'image',
+        'price',
         'alltime_percent',
         'collection_id'
     ];
+
+    public function periods()
+    {
+        return $this->hasMany(Period::class);
+    }
 }
